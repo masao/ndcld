@@ -11,8 +11,12 @@ div#result {
   background-color: #ffe;
 }
 li#current {
-  list-style-type: circle;
+  list-style-type: none;
   font-size: larger;
+  margin-left: -1em;
+}
+li#current:before {
+  content: "» ";
 }
 li#current li {
   font-size: initial;
@@ -71,7 +75,8 @@ $(function() {
                  "?s skos:notation ?number.\n"+
                  "?s skos:prefLabel ?label.\n"+
                  "FILTER langMatches(lang(?label), \"ja\")\n"+
-               "}";
+               "}\n"+
+               "ORDER BY ASC(?s)";
   $.ajax({
     url: "ndcld.php",
     data: {
@@ -91,7 +96,8 @@ $(function() {
                      "?s skos:notation ?number.\n"+
                      "?s skos:prefLabel ?label.\n"+
                      "FILTER langMatches(lang(?label), \"ja\")\n"+
-                   "}";
+                   "}\n"+
+                   "ORDER BY ASC(?s)";
       $.ajax({
         url: "ndcld.php",
         data: {
@@ -111,7 +117,8 @@ $(function() {
                               "?s skos:notation ?number.\n"+
                               "?s skos:prefLabel ?label.\n"+
                               "FILTER langMatches(lang(?label), \"ja\")\n"+
-                            "}";
+                           "}\n"+
+                           "ORDER BY ASC(?s)";
               $.ajax({
                 url: "ndcld.php",
                 data: {
