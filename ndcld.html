@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <title>NDC-LD autocomplete</title>
 <link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css"/>
+<style type="text/css">
+div#result {
+  margin: 3em;
+  padding: 5px;
+  background-color: #ffe;
+}
+li#current {
+  list-style-type: circle;
+  font-size: larger;
+}
+li#current li {
+  font-size: initial;
+}
+</style>
 <script src="//code.jquery.com/jquery-1.10.2.js"></script>
 <script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
 <script type="text/javascript">
@@ -28,7 +42,6 @@ $(function() {
                  "}\n"+
                  "ORDER BY ASC(?s)";
     sparql = sparql.replace(/REQUEST_TERM/g, request.term).trim();
-    //prompt("",sparql);
     $.ajax({
       url: "ndcld.php",
       data: {
@@ -39,7 +52,6 @@ $(function() {
           var url = val["s"]["value"];
           var ndc_number = url.substr(url.lastIndexOf("/")+1);
           return {
-            //value: val["s"]["value"],
             value: ndc_number,
             label: ndc_number +" - "+ val["label"]["value"]
           };
@@ -49,14 +61,89 @@ $(function() {
     });
   }
  });
+
+ $("#display").click(function(){
+  var ndc = $("#ndcld").val();
+  var sparql = "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n"+
+               "PREFIX ndc9: <http://id.ndl.go.jp/class/ndc9/>\n"+
+               "SELECT ?number ?label WHERE {\n"+
+                 "ndc9:"+ ndc +" skos:broader ?s.\n"+
+                 "?s skos:notation ?number.\n"+
+                 "?s skos:prefLabel ?label.\n"+
+                 "FILTER langMatches(lang(?label), \"ja\")\n"+
+               "}";
+  $.ajax({
+    url: "ndcld.php",
+    data: {
+      query: sparql
+    },
+    success: function( data ) {
+      var result = data.results.bindings[0];
+      var ndc_number = result["number"]["value"];
+      var label = result["label"]["value"];
+      $("#result").empty();
+      $("#result").append("<h2>"+ ndc_number +" (" + label + ")</h2>");
+
+      var sparql = "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n"+
+                   "PREFIX ndc9: <http://id.ndl.go.jp/class/ndc9/>\n"+
+                   "SELECT ?number ?label WHERE {\n"+
+                     "?s skos:broader ndc9:"+ ndc_number +".\n"+
+                     "?s skos:notation ?number.\n"+
+                     "?s skos:prefLabel ?label.\n"+
+                     "FILTER langMatches(lang(?label), \"ja\")\n"+
+                   "}";
+      $.ajax({
+        url: "ndcld.php",
+        data: {
+          query: sparql
+        },
+        success: function( data ) {
+          $("#result").append("<ul></ul>");
+          $.each(data.results.bindings, function(i, val){
+            var ndc_number = val["number"]["value"];
+            var label = val["label"]["value"];
+            if (ndc == ndc_number) {
+              $("#result ul").append("<li id=\"current\">"+ ndc_number +" ("+ label +")</li>");
+              var sparql = "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n"+
+                           "PREFIX ndc9: <http://id.ndl.go.jp/class/ndc9/>\n"+
+                           "SELECT ?number ?label WHERE {\n"+
+                              "?s skos:broader ndc9:"+ ndc_number +".\n"+
+                              "?s skos:notation ?number.\n"+
+                              "?s skos:prefLabel ?label.\n"+
+                              "FILTER langMatches(lang(?label), \"ja\")\n"+
+                            "}";
+              $.ajax({
+                url: "ndcld.php",
+                data: {
+                  query: sparql
+                },
+                success: function( data ) {
+                  $("#current").append("<ul></ul>");
+                  $.each(data.results.bindings, function(i, val2){
+                    var child_number = val2["number"]["value"];
+                    var child_label = val2["label"]["value"];
+                    $("#current ul").append("<li>"+child_number+" ("+child_label+")</li>");
+                  });
+                }
+              });
+            } else {
+              $("#result ul").append("<li>"+ ndc_number +" ("+ label +")</li>");
+            }
+          });
+        }
+      });
+    }
+  });
+  return false;
+ });
 });
 </script>
 </head>
 <body>
 <form>
 <label>Search: <input id="ndcld" type="text" name="ndc" value="" size="30"/></label>
-<div id="ndcld-label"></div>
-<div id="ndcld-number"></div>
+<button id="display">Display</button>
+<div id="result"></div>
 </form>
 </body>
 </html>
