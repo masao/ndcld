@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>NDC-LD autocomplete</title>
+<link rel="stylesheet" href="//code.jquery.com/ui/1.11.4/themes/smoothness/jquery-ui.css"/>
+<script src="//code.jquery.com/jquery-1.10.2.js"></script>
+<script src="//code.jquery.com/ui/1.11.4/jquery-ui.js"></script>
+<script type="text/javascript">
+$(function() {
+ $( "#ndcld" ).autocomplete({
+  source: function( request, response ) {
+    var sparql = "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n"+
+                 "PREFIX xl: <http://www.w3.org/2008/05/skos-xl#>\n"+
+                 "PREFIX ndcv: <http://purl.org/net/ns/ndcvocab#>\n"+
+                 "SELECT ?s ?label WHERE {\n"+
+                   "{\n"+
+                     "?s skos:prefLabel ?label.\n"+
+                     "FILTER regex(?label, \"^REQUEST_TERM\", \"i\")\n"+
+                   "} UNION {\n"+
+                     "?s ndcv:indexedTerm [ xl:literalForm ?label ].\n"+
+                     "FILTER regex(?label, \"^REQUEST_TERM\", \"i\")\n"+
+                   "} UNION {\n"+
+                     "?s skos:prefLabel ?label.\n"+
+                     "?s skos:notation ?number.\n"+
+                     "FILTER regex(?number, \"^REQUEST_TERM\", \"i\")\n"+
+                   "}\n"+
+                 "}\n"+
+                 "ORDER BY ASC(?s)";
+    sparql = sparql.replace(/REQUEST_TERM/g, request.term).trim();
+    //prompt("",sparql);
+    $.ajax({
+      url: "ndcld.php",
+      data: {
+        query: sparql
+      },
+      success: function( data ) {
+        var result = $.map( data.results.bindings, function( val, i ){
+          var url = val["s"]["value"];
+          var ndc_number = url.substr(url.lastIndexOf("/")+1);
+          return {
+            //value: val["s"]["value"],
+            value: ndc_number,
+            label: ndc_number +" - "+ val["label"]["value"]
+          };
+        });
+        response( result );
+      }
+    });
+  }
+ });
+});
+</script>
+</head>
+<body>
+<form action="">
+<input id="ndcld" type="text" name="ndc" value="" size="30"/>
+<div id="ndcld-label"/>
+<div id="ndcld-number"/>
+</form>
+</body>
+</html>
